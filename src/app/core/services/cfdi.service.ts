@@ -1,20 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { CFDI, PaginatedResponse } from '../models/cfdi.model';
-
-export interface CFDIFilter {
-  page?: number;
-  limit?: number;
-  source?: string;
-  tipoDeComprobante?: string;
-  rfcEmisor?: string;
-  rfcReceptor?: string;
-  satStatus?: string;
-  fechaInicio?: string;
-  fechaFin?: string;
-  search?: string;
-}
+import { CFDI, CFDIFilter, PaginatedResponse } from '../models/cfdi.model';
 
 @Injectable({ providedIn: 'root' })
 export class CfdiService {
@@ -26,10 +13,6 @@ export class CfdiService {
 
   getById(id: string): Observable<CFDI> {
     return this.api.get<CFDI>(`/cfdis/${id}`);
-  }
-
-  uploadXMLs(files: File[], source: 'ERP' | 'SAT' = 'ERP'): Observable<{ success: any[]; failed: any[]; message: string }> {
-    return this.api.uploadFiles('/cfdis/upload', files, 'xmlFiles', { source });
   }
 
   compare(id: string): Observable<any> {
@@ -46,5 +29,9 @@ export class CfdiService {
 
   downloadXML(id: string): void {
     window.open(`${this.api.base}/cfdis/${id}/xml`, '_blank');
+  }
+
+  exportExcel(filters: CFDIFilter = {}): Observable<Blob> {
+    return this.api.downloadBlob('/cfdis/export', filters as Record<string, unknown>);
   }
 }

@@ -6,7 +6,19 @@
       <div class="page-title">Dashboard</div>
       <div class="page-subtitle">Resumen ERP vs SAT</div>
     </div>
-    <div class="flex gap-2">
+    <div class="flex gap-2 align-items-center flex-wrap">
+      <select (change)="onEjercicioChange($event)" class="form-control form-control-sm" style="width:auto;">
+        <option value="">Todos los años</option>
+        <option *ngFor="let ej of ejercicios" [value]="ej">{{ ej }}</option>
+      </select>
+      <select (change)="onPeriodoChange($event)" class="form-control form-control-sm" style="width:auto;" [disabled]="!ejercicioSeleccionado">
+        <option value="">Todos los meses</option>
+        <option *ngFor="let m of meses" [value]="m.valor">{{ m.nombre }}</option>
+      </select>
+      <select (change)="onTipoChange($event)" class="form-control form-control-sm" style="width:auto;">
+        <option value="">Todos los tipos</option>
+        <option *ngFor="let t of tipos" [value]="t.valor">{{ t.label }}</option>
+      </select>
       <button (click)="loadDashboard()" class="btn btn-secondary btn-sm">↻ Actualizar</button>
       <button (click)="runBatchComparison()" class="btn btn-primary btn-sm">⟳ Comparar todos</button>
     </div>
@@ -19,61 +31,178 @@
 
   <ng-container *ngIf="!loading && kpis">
 
-    <!-- KPI Cards — compactas -->
-    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:0.75rem; margin-bottom:1.25rem;">
+    <!-- ── Fila 1: KPIs de conciliación ── -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:0.75rem; margin-bottom:1rem;">
 
       <div class="kpi-card kpi-primary" style="padding:1rem 1.25rem;">
-        <div class="kpi-label">Total CFDIs</div>
-        <div class="kpi-value" style="font-size:1.5rem;">{{ kpis.totalCFDIs | number }}</div>
-        <div class="kpi-sub">Documentos cargados</div>
+        <div class="kpi-label">Total ERP</div>
+        <div class="kpi-value" style="font-size:1.5rem;">{{ countERP | number }}</div>
+        <div class="kpi-sub">SAT/MANUAL: {{ countSAT | number }} docs</div>
       </div>
 
-      <div class="kpi-card" style="padding:1rem 1.25rem;"
+      <div class="kpi-card kpi-success" style="padding:1rem 1.25rem;">
+        <div class="kpi-label">Conciliados</div>
+        <div class="kpi-value" style="font-size:1.5rem; color:#065f46;">{{ kpis.conciliados | number }}</div>
+        <div class="kpi-sub">ERP = SAT en todos los campos</div>
+      </div>
+
+      <div class="kpi-card kpi-danger" style="padding:1rem 1.25rem;">
+        <div class="kpi-label">Con diferencias</div>
+        <div class="kpi-value" style="font-size:1.5rem; color:#991b1b;">{{ kpis.conDiscrepancia | number }}</div>
+        <div class="kpi-sub">Discrepancias o advertencias</div>
+      </div>
+
+      <div class="kpi-card" style="padding:1rem 1.25rem; background:#f8fafc;">
+        <div class="kpi-label">Sin comparar</div>
+        <div class="kpi-value" style="font-size:1.5rem; color:#475569;">{{ kpis.sinConciliar | number }}</div>
+        <div class="kpi-sub">Pendientes de comparación SAT</div>
+      </div>
+
+      <div *ngIf="kpis.notInErp > 0" class="kpi-card kpi-warning" style="padding:1rem 1.25rem;">
+        <div class="kpi-label">Solo en SAT</div>
+        <div class="kpi-value" style="font-size:1.5rem; color:#92400e;">{{ kpis.notInErp | number }}</div>
+        <div class="kpi-sub">En SAT sin contraparte ERP</div>
+      </div>
+
+      <div *ngIf="kpis.erpCanceladosCount > 0" class="kpi-card" style="padding:1rem 1.25rem; background:#fef2f2;">
+        <div class="kpi-label" style="color:#b91c1c;">Cancelados ERP</div>
+        <div class="kpi-value" style="font-size:1.5rem; color:#991b1b;">{{ kpis.erpCanceladosCount | number }}</div>
+        <div class="kpi-sub">Cancelados en SAT (excluidos del total)</div>
+      </div>
+
+      <div class="kpi-card"
         [class.kpi-success]="matchRate >= 95"
         [class.kpi-warning]="matchRate < 95 && matchRate >= 80"
-        [class.kpi-danger]="matchRate < 80">
-        <div class="kpi-label">Coincidencia</div>
+        [class.kpi-danger]="matchRate < 80"
+        style="padding:1rem 1.25rem;">
+        <div class="kpi-label">Tasa de coincidencia</div>
         <div class="kpi-value" style="font-size:1.5rem;"
           [style.color]="matchRate >= 95 ? '#065f46' : matchRate >= 80 ? '#92400e' : '#991b1b'">
           {{ matchRate }}%
         </div>
-        <div class="kpi-sub">Sin discrepancias</div>
+        <div class="kpi-sub">De los comparados</div>
       </div>
 
-      <div class="kpi-card kpi-danger" style="padding:1rem 1.25rem;">
-        <div class="kpi-label">Críticas</div>
-        <div class="kpi-value text-danger" style="font-size:1.5rem;">{{ totalDiscrepanciasCriticas | number }}</div>
-        <div class="kpi-sub">Atención inmediata</div>
-      </div>
-
-      <div class="kpi-card kpi-warning" style="padding:1rem 1.25rem;">
-        <div class="kpi-label">Impacto fiscal</div>
-        <div class="kpi-value" style="font-size:1.25rem; color:#92400e;">{{ totalImpactoFiscal | currency:'MXN':'symbol':'1.0-0' }}</div>
-        <div class="kpi-sub">Monto en discrepancia</div>
-      </div>
+     
 
     </div>
 
-    <!-- Charts — más pequeñas, en fila -->
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1.25rem;">
+    <!-- ── Fila 2: Conciliación de montos ── -->
+    <div class="card mb-3" style="border-left:4px solid #6366f1;">
+      <div class="card-body" style="padding:1rem 1.25rem;">
+        <div style="font-size:0.75rem; font-weight:700; color:#6366f1; text-transform:uppercase; letter-spacing:.05em; margin-bottom:0.75rem;">
+          Conciliación de montos
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem;">
+
+          <div style="text-align:center; padding:0.75rem; background:#f0fdf4; border-radius:8px; border:1px solid #bbf7d0;">
+            <div style="font-size:0.72rem; color:#15803d; font-weight:600; text-transform:uppercase; letter-spacing:.04em;">Total SAT</div>
+            <div style="font-size:1.35rem; font-weight:700; color:#065f46; margin-top:0.25rem;">
+              {{ kpis.totalSAT | currency:'MXN':'symbol':'1.2-2' }}
+            </div>
+            <div style="font-size:0.7rem; color:#15803d; margin-top:0.2rem;">{{ countSAT | number }} documentos</div>
+          </div>
+
+          <div style="text-align:center; padding:0.75rem; background:#eff6ff; border-radius:8px; border:1px solid #bfdbfe;">
+            <div style="font-size:0.72rem; color:#1d4ed8; font-weight:600; text-transform:uppercase; letter-spacing:.04em;">Total Sistema (ERP)</div>
+            <div style="font-size:1.35rem; font-weight:700; color:#1e40af; margin-top:0.25rem;">
+              {{ kpis.totalERP | currency:'MXN':'symbol':'1.2-2' }}
+            </div>
+            <div style="font-size:0.7rem; color:#1d4ed8; margin-top:0.2rem;">{{ countERP | number }} documentos</div>
+          </div>
+
+          <div style="text-align:center; padding:0.75rem; border-radius:8px; border:1px solid;"
+            [style.background]="diferenciaAbs === 0 ? '#f0fdf4' : '#fef2f2'"
+            [style.border-color]="diferenciaAbs === 0 ? '#bbf7d0' : '#fecaca'">
+            <div style="font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.04em;"
+              [style.color]="diferenciaAbs === 0 ? '#15803d' : '#b91c1c'">
+              Diferencia
+            </div>
+            <div style="font-size:1.35rem; font-weight:700; margin-top:0.25rem;"
+              [style.color]="diferenciaAbs === 0 ? '#065f46' : '#991b1b'">
+              {{ diferenciaAbs === 0 ? '✓ Sin diferencia' : (kpis.diferencia | currency:'MXN':'symbol':'1.2-2') }}
+            </div>
+            <div *ngIf="diferenciaAbs > 0" style="font-size:0.72rem; margin-top:0.15rem;"
+              [style.color]="(kpis.diferencia || 0) > 0 ? '#b91c1c' : '#15803d'">
+              {{ (kpis.diferencia || 0) > 0 ? 'ERP mayor que SAT' : 'SAT mayor que ERP' }}
+            </div>
+          </div>
+
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Fila 2.5: IVA ── -->
+    <div class="card mb-3" style="border-left:4px solid #8b5cf6;">
+      <div class="card-body" style="padding:1rem 1.25rem;">
+        <div style="font-size:0.75rem; font-weight:700; color:#8b5cf6; text-transform:uppercase; letter-spacing:.05em; margin-bottom:0.75rem;">
+          Impuestos acumulados (todos los CFDIs cargados)
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:0.75rem;">
+
+          <div style="text-align:center; padding:0.65rem; background:#f5f3ff; border-radius:8px; border:1px solid #ddd6fe;">
+            <div style="font-size:0.7rem; color:#6d28d9; font-weight:600; text-transform:uppercase; letter-spacing:.04em;">IVA trasladado</div>
+            <div style="font-size:1.15rem; font-weight:700; color:#4c1d95; margin-top:0.2rem;">
+              {{ ivaTrasladadoTotal | currency:'MXN':'symbol':'1.0-0' }}
+            </div>
+            <div style="font-size:0.68rem; color:#7c3aed; margin-top:0.15rem;">IVA cobrado a clientes</div>
+          </div>
+
+          <div style="text-align:center; padding:0.65rem; background:#fff7ed; border-radius:8px; border:1px solid #fed7aa;">
+            <div style="font-size:0.7rem; color:#c2410c; font-weight:600; text-transform:uppercase; letter-spacing:.04em;">IVA retenido</div>
+            <div style="font-size:1.15rem; font-weight:700; color:#9a3412; margin-top:0.2rem;">
+              {{ ivaRetenidoTotal | currency:'MXN':'symbol':'1.0-0' }}
+            </div>
+            <div style="font-size:0.68rem; color:#ea580c; margin-top:0.15rem;">IVA retenido a proveedores</div>
+          </div>
+
+          <div style="text-align:center; padding:0.65rem; border-radius:8px; border:1px solid;"
+            [style.background]="ivaNeto >= 0 ? '#f0fdf4' : '#fef2f2'"
+            [style.border-color]="ivaNeto >= 0 ? '#bbf7d0' : '#fecaca'">
+            <div style="font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.04em;"
+              [style.color]="ivaNeto >= 0 ? '#15803d' : '#b91c1c'">IVA por trasladar</div>
+            <div style="font-size:1.15rem; font-weight:700; margin-top:0.2rem;"
+              [style.color]="ivaNeto >= 0 ? '#065f46' : '#991b1b'">
+              {{ ivaNeto | currency:'MXN':'symbol':'1.0-0' }}
+            </div>
+            <div style="font-size:0.68rem; margin-top:0.15rem;"
+              [style.color]="ivaNeto >= 0 ? '#15803d' : '#b91c1c'">
+              Trasladado − retenido
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Fila 3: Gráficas ── -->
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+
+      <div class="chart-card" style="padding:1rem 1.25rem;">
+        <div class="chart-title" style="font-size:0.8rem; margin-bottom:0.75rem;">Estado de conciliación</div>
+        <div style="height:180px; display:flex; justify-content:center;">
+          <canvas baseChart [data]="conciliationChartData" [options]="donutOptions" type="doughnut"></canvas>
+        </div>
+      </div>
 
       <div class="chart-card" style="padding:1rem 1.25rem;">
         <div class="chart-title" style="font-size:0.8rem; margin-bottom:0.75rem;">Estado SAT</div>
-        <div style="max-height:180px; display:flex; justify-content:center;">
-          <canvas baseChart [data]="satStatusChartData" [options]="satStatusChartOptions" type="doughnut"></canvas>
+        <div style="height:180px; display:flex; justify-content:center;">
+          <canvas baseChart [data]="satStatusChartData" [options]="donutOptions" type="doughnut"></canvas>
         </div>
       </div>
 
       <div class="chart-card" style="padding:1rem 1.25rem;">
-        <div class="chart-title" style="font-size:0.8rem; margin-bottom:0.75rem;">Comparaciones</div>
-        <div style="max-height:180px;">
-          <canvas baseChart [data]="comparisonChartData" type="bar"></canvas>
+        <div class="chart-title" style="font-size:0.8rem; margin-bottom:0.75rem;">Comparación de montos</div>
+        <div style="height:180px;">
+          <canvas baseChart [data]="amountsChartData" [options]="barHOptions" type="bar"></canvas>
         </div>
       </div>
 
     </div>
 
-    <!-- Bottom row -->
+    <!-- ── Fila 4: Tablas ── -->
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
 
       <div class="table-card">
@@ -84,7 +213,7 @@
           <thead><tr><th>Tipo</th><th style="text-align:right;">Cant.</th></tr></thead>
           <tbody>
             <tr *ngFor="let item of topDiscrepancyTypes">
-              <td class="text-xs"><span class="badge badge-warning">{{ item._id }}</span></td>
+              <td class="text-xs"><span class="badge badge-warning" [title]="item._id">{{ discrepancyTypeLabel[item._id] || item._id }}</span></td>
               <td style="text-align:right; font-weight:600; font-size:0.8rem;">{{ item.count }}</td>
             </tr>
             <tr *ngIf="topDiscrepancyTypes.length === 0">
@@ -102,7 +231,7 @@
           <div *ngFor="let d of recentDiscrepancies"
             style="display:flex; align-items:flex-start; gap:0.625rem; padding:0.5rem 1rem; border-bottom:1px solid var(--gray-100);">
             <span class="badge" style="margin-top:0.125rem; font-size:0.65rem;"
-              [ngClass]="d.severity === 'critical' ? 'badge-danger' : (d.severity === 'high' || d.severity === 'warning') ? 'badge-warning' : 'badge-secondary'">
+              [ngClass]="d.severity === 'critical' ? 'badge-danger' : 'badge-warning'">
               {{ d.severity === 'critical' ? '●' : '○' }}
             </span>
             <div style="flex:1; min-width:0;">

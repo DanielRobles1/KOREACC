@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { Comparison, Discrepancy, PaginatedResponse, DashboardKPIs } from '../models/cfdi.model';
+import { Comparison, ComparisonSession, Discrepancy, PaginatedResponse, DashboardKPIs } from '../models/cfdi.model';
 
 @Injectable({ providedIn: 'root' })
 export class ComparisonService {
@@ -19,8 +19,44 @@ export class ComparisonService {
     return this.api.get('/comparisons/stats');
   }
 
-  runBatch(filters: Record<string, unknown> = {}): Observable<any> {
-    return this.api.post('/comparisons/batch', { filters });
+  runBatch(filters: Record<string, unknown> = {}, ejercicio?: number, periodo?: number, tipo?: string): Observable<any> {
+    const body: Record<string, unknown> = { filters };
+    if (ejercicio) body['ejercicio'] = ejercicio;
+    if (periodo)   body['periodo']   = periodo;
+    if (tipo)      body['filters']   = { ...filters, tipoDeComprobante: tipo };
+    return this.api.post('/comparisons/batch', body);
+  }
+
+  getPeriodos(): Observable<{ periodos: { ejercicio: number; periodo: number }[]; ejercicios: number[] }> {
+    return this.api.get('/comparisons/periodos');
+  }
+
+  getEjerciciosResumen(): Observable<{ data: any[] }> {
+    return this.api.get('/comparisons/ejercicios/resumen');
+  }
+
+  listPeriodosFiscales(): Observable<{ data: any[] }> {
+    return this.api.get('/periodos-fiscales');
+  }
+
+  createPeriodoFiscal(ejercicio: number, periodo: number | null, label?: string): Observable<any> {
+    return this.api.post('/periodos-fiscales', { ejercicio, periodo, label });
+  }
+
+  deletePeriodoFiscal(id: string): Observable<any> {
+    return this.api.delete(`/periodos-fiscales/${id}`);
+  }
+
+  runBatchByUUIDs(uuids: string[]): Observable<any> {
+    return this.api.post('/comparisons/batch', { uuids });
+  }
+
+  listSessions(params: Record<string, unknown> = {}): Observable<PaginatedResponse<ComparisonSession>> {
+    return this.api.get<PaginatedResponse<ComparisonSession>>('/comparisons/sessions', params);
+  }
+
+  getSession(id: string, params: Record<string, unknown> = {}): Observable<{ session: ComparisonSession; comparisons: PaginatedResponse<Comparison> }> {
+    return this.api.get(`/comparisons/sessions/${id}`, params);
   }
 
   resolve(id: string, resolutionNotes?: string): Observable<Comparison> {

@@ -1,18 +1,23 @@
 import { Component } from '@angular/core';
-import { ComparisonService } from '../../core/services/comparison.service';
+import { ComparisonFacade } from '../../core/facades';
 
 @Component({
   standalone: false,
   selector: 'app-reports',
   template: `
-    <div class="p-6">
-      <h1 class="text-2xl font-bold text-gray-800 mb-6">Reportes</h1>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="table-card p-6">
-          <h3 class="text-lg font-semibold mb-2">Exportar Comparaciones</h3>
-          <p class="text-gray-500 text-sm mb-4">Descarga un Excel con todas las comparaciones y su estado.</p>
+    <div class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Reportes</div>
+          <div class="page-subtitle">Exporta información del sistema en formato Excel</div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="card-body">
+          <div class="mb-2 font-semibold">Exportar Comparaciones</div>
+          <p class="text-muted mb-4" style="font-size:0.875rem;">Descarga un Excel con todas las comparaciones y su estado.</p>
           <button (click)="exportExcel()" [disabled]="loading" class="btn btn-primary">
-            {{ loading ? 'Generando...' : 'Descargar Excel' }}
+            {{ loading ? 'Generando...' : '↓ Descargar Excel' }}
           </button>
         </div>
       </div>
@@ -22,11 +27,11 @@ import { ComparisonService } from '../../core/services/comparison.service';
 export class ReportsComponent {
   loading = false;
 
-  constructor(private comparisonService: ComparisonService) {}
+  constructor(private comparisonFacade: ComparisonFacade) {}
 
   exportExcel(): void {
     this.loading = true;
-    this.comparisonService.exportExcel().subscribe({
+    this.comparisonFacade.exportExcel().subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

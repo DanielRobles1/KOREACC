@@ -38,33 +38,50 @@ export class AuthService {
   login(email: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${environment.apiUrl}/auth/login`, { email, password }).pipe(
       tap(res => {
-        localStorage.setItem(this.TOKEN_KEY, res.token);
+        sessionStorage.setItem(this.TOKEN_KEY, res.token);
         this.currentUser$.next(res.user);
       })
     );
   }
 
   logout(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
+    sessionStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem('cfdi_erp_api_url');  // limpieza de clave legacy
     this.currentUser$.next(null);
     this.router.navigate(['/login']);
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
+    const token = sessionStorage.getItem(this.TOKEN_KEY);
+    if (!token) return null;
+    if (this.isTokenExpired(token)) {
+      sessionStorage.removeItem(this.TOKEN_KEY);
+      this.currentUser$.next(null);
+      return null;
+    }
+    return token;
   }
 
   hasRole(...roles: string[]): boolean {
     return roles.includes(this.currentUser?.role ?? '');
   }
 
+  private isTokenExpired(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.exp * 1000 < Date.now();
+    } catch {
+      return true;  // token malformado se trata como expirado
+    }
+  }
+
   private loadUserFromToken(): AuthUser | null {
-    const token = localStorage.getItem(this.TOKEN_KEY);
+    const token = sessionStorage.getItem(this.TOKEN_KEY);
     if (!token) return null;
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      if (payload.exp * 1000 < Date.now()) {
-        localStorage.removeItem(this.TOKEN_KEY);
+      if (this.isTokenExpired(token)) {
+        sessionStorage.removeItem(this.TOKEN_KEY);
         return null;
       }
       return payload;

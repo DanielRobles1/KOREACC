@@ -24,14 +24,28 @@
           <span *ngIf="!sidebarCollapsed">CFDIs</span>
         </a>
 
+        <div *ngIf="!sidebarCollapsed" class="sidebar-section">Importar CFDIs</div>
+        <a routerLink="/sat" routerLinkActive="active" [title]="sidebarCollapsed ? 'Descarga SAT' : ''">
+          <span class="sidebar-icon">⬇</span>
+          <span *ngIf="!sidebarCollapsed">Descarga SAT</span>
+        </a>
+        <a routerLink="/import" routerLinkActive="active" [title]="sidebarCollapsed ? 'Cargar ERP' : ''">
+          <span class="sidebar-icon">⬆</span>
+          <span *ngIf="!sidebarCollapsed">Cargar ERP</span>
+        </a>
+
         <div *ngIf="!sidebarCollapsed" class="sidebar-section">Análisis</div>
-        <a routerLink="/comparisons" routerLinkActive="active" [title]="sidebarCollapsed ? 'Comparaciones' : ''">
+        <a routerLink="/comparisons" [routerLinkActiveOptions]="{exact:true}" routerLinkActive="active" [title]="sidebarCollapsed ? 'Comparaciones' : ''">
           <span class="sidebar-icon">⇄</span>
           <span *ngIf="!sidebarCollapsed">Comparaciones</span>
         </a>
         <a routerLink="/discrepancies" routerLinkActive="active" [title]="sidebarCollapsed ? 'Discrepancias' : ''">
           <span class="sidebar-icon">△</span>
           <span *ngIf="!sidebarCollapsed">Discrepancias</span>
+        </a>
+        <a routerLink="/ejercicios" routerLinkActive="active" [title]="sidebarCollapsed ? 'Ejercicios y Periodos' : ''">
+          <span class="sidebar-icon">◫</span>
+          <span *ngIf="!sidebarCollapsed">Ejercicios y Periodos</span>
         </a>
       </div>
 

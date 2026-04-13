@@ -28,6 +28,21 @@ const routes: Routes = [
     canActivate: [AuthGuard],
     loadChildren: () => import('./features/discrepancies/discrepancies.module').then(m => m.DiscrepanciesModule),
   },
+  {
+    path: 'sat',
+    canActivate: [AuthGuard],
+    loadChildren: () => import('./features/sat/sat.module').then(m => m.SatModule),
+  },
+  {
+    path: 'import',
+    canActivate: [AuthGuard],
+    loadChildren: () => import('./features/import/import.module').then(m => m.ImportModule),
+  },
+  {
+    path: 'ejercicios',
+    canActivate: [AuthGuard],
+    loadChildren: () => import('./features/ejercicios/ejercicios.module').then(m => m.EjerciciosModule),
+  },
   { path: '**', redirectTo: '/login' },
 ];
 

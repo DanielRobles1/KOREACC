@@ -1,22 +1,39 @@
-import { Component, OnInit } from '@angular/core';
-import { ComparisonService } from '../../core/services/comparison.service';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { ComparisonFacade } from '../../core/facades';
 import { DashboardKPIs, Discrepancy } from '../../core/models/cfdi.model';
+import { DISCREPANCY_TYPE_LABEL, MESES_LABELS } from '../../core/constants/cfdi-labels';
 
 @Component({
   standalone: false,
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   kpis: DashboardKPIs | null = null;
   topDiscrepancyTypes: any[] = [];
   recentDiscrepancies: Discrepancy[] = [];
+  readonly discrepancyTypeLabel = DISCREPANCY_TYPE_LABEL;
   loading = true;
   error: string | null = null;
 
-  // Chart: estado SAT
-  satStatusChartData: any = { datasets: [], labels: [] };
-  satStatusChartOptions = {
+  ejercicioSeleccionado?: number;
+  periodoSeleccionado?: number;
+  tipoSeleccionado?: string;
+  readonly anioActual = new Date().getFullYear();
+  readonly ejercicios = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+  readonly meses = MESES_LABELS.map((nombre, i) => ({ valor: i + 1, nombre }));
+  readonly tipos = [
+    { valor: 'I', label: 'I - Ingreso' },
+    { valor: 'E', label: 'E - Egreso' },
+    { valor: 'P', label: 'P - Pago' },
+    { valor: 'T', label: 'T - Traslado' },
+    { valor: 'N', label: 'N - Nómina' },
+  ];
+
+  readonly donutOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -24,18 +41,35 @@ export class DashboardComponent implements OnInit {
     },
   };
 
-  // Chart: comparaciones por estado
-  comparisonChartData: any = { datasets: [], labels: [] };
+  readonly barHOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: 'y' as const,
+    plugins: {
+      legend: { display: false },
+    },
+    scales: {
+      x: { ticks: { font: { size: 10 } } },
+      y: { ticks: { font: { size: 11 } } },
+    },
+  };
 
-  constructor(private comparisonService: ComparisonService) {}
+  satStatusChartData: any    = { datasets: [], labels: [] };
+  conciliationChartData: any = { datasets: [], labels: [] };
+  amountsChartData: any      = { datasets: [], labels: [] };
 
-  ngOnInit(): void {
-    this.loadDashboard();
+  constructor(private comparisonFacade: ComparisonFacade) {}
+
+  ngOnInit(): void { this.loadDashboard(); }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadDashboard(): void {
     this.loading = true;
-    this.comparisonService.getDashboard().subscribe({
+    this.comparisonFacade.getDashboard(this.ejercicioSeleccionado, this.periodoSeleccionado, this.tipoSeleccionado).pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         this.kpis = data.kpis;
         this.topDiscrepancyTypes = data.topDiscrepancyTypes;
@@ -43,7 +77,7 @@ export class DashboardComponent implements OnInit {
         this.buildCharts(data.kpis);
         this.loading = false;
       },
-      error: (err) => {
+      error: () => {
         this.error = 'Error cargando el dashboard';
         this.loading = false;
       },
@@ -51,28 +85,41 @@ export class DashboardComponent implements OnInit {
   }
 
   private buildCharts(kpis: DashboardKPIs): void {
-    // Gráfica de estado SAT
-    const satLabels = kpis.cfdisBySatStatus.map(s => s._id || 'Sin verificar');
-    const satData = kpis.cfdisBySatStatus.map(s => s.count);
+    const satStatusColor: Record<string, string> = {
+      'Vigente':            '#22c55e',
+      'Cancelado':          '#ef4444',
+      'No Encontrado':      '#f59e0b',
+      'Error':              '#94a3b8',
+      'Deshabilitado':      '#9ca3af',
+      'Expresión Inválida': '#6366f1',
+      'Pendiente':          '#60a5fa',
+      'Sin verificar':      '#e2e8f0',
+    };
     this.satStatusChartData = {
-      labels: satLabels,
+      labels: kpis.cfdisBySatStatus.map(s => s._id || 'Sin verificar'),
       datasets: [{
-        data: satData,
-        backgroundColor: ['#22c55e', '#ef4444', '#f59e0b', '#94a3b8', '#6366f1'],
+        data: kpis.cfdisBySatStatus.map(s => s.count),
+        backgroundColor: kpis.cfdisBySatStatus.map(s => satStatusColor[s._id || 'Sin verificar'] ?? '#e2e8f0'),
       }],
     };
 
-    // Gráfica de comparaciones
-    const compLabels = kpis.comparisonStats.map(s => s._id);
-    const compData = kpis.comparisonStats.map(s => s.count);
-    this.comparisonChartData = {
-      labels: compLabels,
+    this.conciliationChartData = {
+      labels: ['Conciliados', 'Con discrepancias / advertencias', 'Pendientes / sin comparar'],
       datasets: [{
-        label: 'Comparaciones',
-        data: compData,
-        backgroundColor: '#3b82f6',
+        data: [kpis.conciliados, kpis.conDiscrepancia, kpis.sinConciliar],
+        backgroundColor: ['#22c55e', '#ef4444', '#94a3b8'],
       }],
     };
+
+    this.amountsChartData = {
+      labels: ['Total SAT', 'Total Sistema (ERP)'],
+      datasets: [{
+        data: [kpis.totalSAT, kpis.totalERP],
+        backgroundColor: ['#22c55e', '#3b82f6'],
+        borderRadius: 4,
+      }],
+    };
+
   }
 
   get totalDiscrepanciasCriticas(): number {
@@ -85,15 +132,40 @@ export class DashboardComponent implements OnInit {
 
   get matchRate(): number {
     if (!this.kpis) return 0;
-    const total = this.kpis.comparisonStats.reduce((s, c) => s + c.count, 0);
-    const matches = this.kpis.comparisonStats.find(c => c._id === 'match')?.count ?? 0;
-    return total > 0 ? Math.round((matches / total) * 100) : 0;
+    const total = (this.kpis.conciliados ?? 0) + (this.kpis.conDiscrepancia ?? 0) + (this.kpis.sinConciliar ?? 0);
+    return total > 0 ? Math.round(((this.kpis.conciliados ?? 0) / total) * 100) : 0;
+  }
+
+  get diferenciaAbs(): number {
+    return Math.abs(this.kpis?.diferencia ?? 0);
+  }
+
+  get ivaTrasladadoTotal(): number { return this.kpis?.ivaStats?.ivaTrasladadoTotal ?? 0; }
+  get ivaRetenidoTotal():   number { return this.kpis?.ivaStats?.ivaRetenidoTotal   ?? 0; }
+  get ivaNeto():            number { return this.kpis?.ivaStats?.ivaNeto            ?? 0; }
+  get countERP():           number { return this.kpis?.countERP ?? 0; }
+  get countSAT():           number { return this.kpis?.countSAT ?? 0; }
+
+  onEjercicioChange(event: Event): void {
+    const val = (event.target as HTMLSelectElement).value;
+    this.ejercicioSeleccionado = val ? +val : undefined;
+    this.periodoSeleccionado = undefined;
+    this.loadDashboard();
+  }
+
+  onPeriodoChange(event: Event): void {
+    const val = (event.target as HTMLSelectElement).value;
+    this.periodoSeleccionado = val ? +val : undefined;
+    this.loadDashboard();
+  }
+
+  onTipoChange(event: Event): void {
+    const val = (event.target as HTMLSelectElement).value;
+    this.tipoSeleccionado = val || undefined;
+    this.loadDashboard();
   }
 
   runBatchComparison(): void {
-    this.comparisonService.runBatch().subscribe({
-      next: (res) => console.log('Batch iniciado:', res),
-      error: (err) => console.error('Error en batch:', err),
-    });
+    this.comparisonFacade.runBatch().subscribe();
   }
 }

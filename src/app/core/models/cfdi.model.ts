@@ -1,7 +1,23 @@
 export type CFDISource = 'ERP' | 'SAT' | 'MANUAL' | 'RECEPTOR';
+
+export interface CFDIFilter {
+  page?: number;
+  limit?: number;
+  source?: string;
+  tipoDeComprobante?: string;
+  rfcEmisor?: string;
+  rfcReceptor?: string;
+  satStatus?: string;
+  fechaInicio?: string;
+  fechaFin?: string;
+  search?: string;
+  ejercicio?: number;
+  periodo?: number;
+  lastComparisonStatus?: string;
+}
 export type TipoComprobante = 'I' | 'E' | 'T' | 'N' | 'P';
-export type SatStatus = 'Vigente' | 'Cancelado' | 'No Encontrado' | 'Pendiente' | 'Error' | 'Expresión Inválida' | 'Desconocido' | null;
-export type ComparisonStatus = 'match' | 'discrepancy' | 'not_in_sat' | 'not_in_erp' | 'cancelled' | 'pending' | 'error';
+export type SatStatus = 'Vigente' | 'Cancelado' | 'Deshabilitado' | 'No Encontrado' | 'Pendiente' | 'Error' | 'Expresión Inválida' | 'Desconocido' | null;
+export type ComparisonStatus = 'match' | 'discrepancy' | 'warning' | 'not_in_sat' | 'not_in_erp' | 'cancelled' | 'pending' | 'error';
 export type DiscrepancyType =
   | 'UUID_NOT_FOUND_SAT' | 'AMOUNT_MISMATCH' | 'RFC_MISMATCH' | 'DATE_MISMATCH'
   | 'CANCELLED_IN_SAT' | 'DUPLICATE_UUID' | 'MISSING_IN_ERP' | 'TAX_CALCULATION_ERROR'
@@ -14,6 +30,37 @@ export interface Contribuyente {
   nombre?: string;
   regimenFiscal?: string;
   usoCFDI?: string;
+}
+
+export interface DoctoRelacionado {
+  idDocumento: string;
+  serie?: string;
+  folio?: string;
+  monedaDR: string;
+  tipoCambioDR?: number;
+  metodoDePagoDR: string;
+  numParcialidad?: number;
+  impSaldoAnt?: number;
+  impPagado?: number;
+  impSaldoInsoluto?: number;
+}
+
+export interface PagoDetalle {
+  fechaPago: string;
+  formaDePagoP: string;
+  monedaP: string;
+  tipoCambioP?: number;
+  monto: number;
+  numOperacion?: string;
+  doctosRelacionados?: DoctoRelacionado[];
+}
+
+export interface ComplementoPago {
+  version: string;
+  pagos: PagoDetalle[];
+  totales?: {
+    montoTotalPagos: number;
+  };
 }
 
 export interface CFDI {
@@ -42,6 +89,8 @@ export interface CFDI {
   erpId?: string;
   createdAt: Date;
   updatedAt: Date;
+  /** Solo presente en TipoComprobante === 'P' */
+  complementoPago?: ComplementoPago;
 }
 
 export interface FieldDiff {
@@ -57,7 +106,10 @@ export interface Comparison {
   uuid: string;
   erpCfdiId: string | Partial<CFDI>;
   satCfdiId?: string | Partial<CFDI>;
+  sessionId?: string | null;
   status: ComparisonStatus;
+  ejercicio?: number;
+  periodo?: number;
   differences: FieldDiff[];
   totalDifferences: number;
   criticalCount: number;
@@ -70,11 +122,33 @@ export interface Comparison {
   hasLocalSATCopy?: boolean;
 }
 
+export interface ComparisonSession {
+  _id: string;
+  name: string;
+  triggeredBy?: { _id: string; name?: string; email: string };
+  status: 'running' | 'completed' | 'failed';
+  totalCFDIs: number;
+  processed: number;
+  failedCount: number;
+  results: {
+    match: number;
+    discrepancy: number;
+    not_in_sat: number;
+    cancelled: number;
+    error: number;
+  };
+  startedAt: Date;
+  completedAt?: Date;
+  createdAt: Date;
+}
+
 export interface Discrepancy {
   _id: string;
   comparisonId: string | Partial<Comparison>;
   uuid: string;
   type: DiscrepancyType;
+  ejercicio?: number;
+  periodo?: number;
   severity: Severity;
   description: string;
   erpValue?: unknown;
@@ -82,6 +156,7 @@ export interface Discrepancy {
   rfcEmisor?: string;
   rfcReceptor?: string;
   status: DiscrepancyStatus;
+  satStatus?: string;
   fiscalImpact?: { amount: number; currency: string; taxType?: string };
   createdAt: Date;
 }
@@ -91,9 +166,26 @@ export interface PaginatedResponse<T> {
   pagination: { total: number; page: number; limit: number; pages: number };
 }
 
+export interface IvaStats {
+  ivaTrasladadoTotal: number;
+  ivaRetenidoTotal:   number;
+  ivaNeto:            number;
+}
+
 export interface DashboardKPIs {
   totalCFDIs: number;
+  conciliados: number;
+  conDiscrepancia: number;
+  sinConciliar: number;
+  notInErp: number;
+  erpCanceladosCount: number;
+  totalERP: number;
+  totalSAT: number;
+  diferencia: number;
+  countERP: number;
+  countSAT: number;
   cfdisBySatStatus: Array<{ _id: SatStatus; count: number; totalAmount: number }>;
   comparisonStats: Array<{ _id: ComparisonStatus; count: number }>;
   discrepancyStats: Array<{ _id: Severity; count: number; fiscalImpact: number }>;
+  ivaStats: IvaStats;
 }
