@@ -5,7 +5,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { CfdisFacade } from '../../core/facades';
 import { CFDI, CFDIFilter, Discrepancy, PaginatedResponse } from '../../core/models/cfdi.model';
-import { SAT_STATUS_CLASS, COMPARISON_STATUS_CLASS, COMPARISON_STATUS_LABEL, SEVERITY_CLASS, SEVERITY_LABEL, DISCREPANCY_TYPE_LABEL } from '../../core/constants/cfdi-labels';
+import { SAT_STATUS_CLASS, ERP_STATUS_CLASS, COMPARISON_STATUS_CLASS, COMPARISON_STATUS_LABEL, SEVERITY_CLASS, SEVERITY_LABEL, DISCREPANCY_TYPE_LABEL, DISCREPANCY_TYPE_EXPLANATION, FIELD_LABEL } from '../../core/constants/cfdi-labels';
 
 @Component({
   standalone: false,
@@ -24,6 +24,7 @@ export class CfdiListComponent implements OnInit, OnDestroy {
   periodoLabel = '';
 
   readonly satStatusColors = SAT_STATUS_CLASS;
+  readonly erpStatusColors = ERP_STATUS_CLASS;
   readonly compStatusColors = COMPARISON_STATUS_CLASS;
   readonly compStatusLabel = COMPARISON_STATUS_LABEL;
 
@@ -34,12 +35,18 @@ export class CfdiListComponent implements OnInit, OnDestroy {
   enriqueciendo = false;
   enriquecerMsg = '';
   downloadingExcel = false;
+  mostrarModalExcel = false;
+  readonly erpStatusOpciones = ['Timbrado', 'Cancelado', 'Habilitado', 'Deshabilitado', 'Cancelacion Pendiente'];
+  erpStatusExcel: Set<string> = new Set(this.erpStatusOpciones);
 
-  readonly severityColors = SEVERITY_CLASS;
-  readonly severityLabel  = SEVERITY_LABEL;
-  readonly typeLabel      = DISCREPANCY_TYPE_LABEL;
+  readonly severityColors  = SEVERITY_CLASS;
+  readonly severityLabel   = SEVERITY_LABEL;
+  readonly typeLabel       = DISCREPANCY_TYPE_LABEL;
+  readonly typeExplanation = DISCREPANCY_TYPE_EXPLANATION;
+  readonly fieldLabel      = FIELD_LABEL;
 
   readonly tiposComparables = new Set(['I', 'E', 'P']);
+  activeTab: 'ERP' | 'SAT' = 'ERP';
 
   constructor(
     private cfdisFacade: CfdisFacade,
@@ -52,6 +59,7 @@ export class CfdiListComponent implements OnInit, OnDestroy {
       rfcEmisor: [''],
       rfcReceptor: [''],
       satStatus: [''],
+      erpStatus: [''],
       lastComparisonStatus: [''],
       fechaInicio: [''],
       fechaFin: [''],
@@ -96,9 +104,17 @@ export class CfdiListComponent implements OnInit, OnDestroy {
     return nombres[n - 1] ?? '';
   }
 
+  switchTab(tab: 'ERP' | 'SAT'): void {
+    this.activeTab = tab;
+    this.selectedCfdi = null;
+    this.discrepanciasCfdi = [];
+    this.loadCFDIs(1);
+  }
+
   loadCFDIs(page = 1): void {
     this.loading = true;
     const filters: CFDIFilter = { ...this.filterForm.value, page, limit: this.pagination.limit };
+    filters.source = this.activeTab === 'SAT' ? 'SAT,MANUAL' : 'ERP';
     if (this.ejercicioActual) filters.ejercicio = this.ejercicioActual;
     if (this.periodoActual)   filters.periodo   = this.periodoActual;
     this.cfdisFacade.list(filters).subscribe({
@@ -171,20 +187,14 @@ export class CfdiListComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Devuelve el monto a mostrar para un CFDI:
-   *  - tipo P: usa complementoPago (totales > primer pago > null)
-   *  - otros: usa cfdi.total
-   */
   montoDisplay(cfdi: CFDI): number | null {
-    if (cfdi.tipoDeComprobante !== 'P') return cfdi.total;
-    const cp = cfdi.complementoPago;
-    if (cp) {
-      if (cp.totales?.montoTotalPagos != null) return cp.totales.montoTotalPagos;
-      if (cp.pagos?.length) return cp.pagos[0].monto ?? null;
+    if (cfdi.total > 0) return cfdi.total;
+    // Fallback para pagos SAT con complemento pero sin total en raíz
+    if (cfdi.tipoDeComprobante === 'P' && cfdi.complementoPago) {
+      if (cfdi.complementoPago.totales?.montoTotalPagos != null) return cfdi.complementoPago.totales.montoTotalPagos;
+      if (cfdi.complementoPago.pagos?.length) return cfdi.complementoPago.pagos[0].monto ?? null;
     }
-    // Fallback: importación desde Excel guarda el Monto en cfdi.total
-    return cfdi.total > 0 ? cfdi.total : null;
+    return null;
   }
 
   soloAdvertencias(): boolean {
@@ -196,11 +206,37 @@ export class CfdiListComponent implements OnInit, OnDestroy {
     return cfdi.complementoPago?.pagos?.[0]?.monedaP ?? 'MXN';
   }
 
+  abrirModalExcel(): void {
+    this.erpStatusExcel = new Set(this.erpStatusOpciones);
+    this.mostrarModalExcel = true;
+  }
+
+  toggleErpStatusExcel(est: string): void {
+    if (this.erpStatusExcel.has(est)) {
+      this.erpStatusExcel.delete(est);
+    } else {
+      this.erpStatusExcel.add(est);
+    }
+    this.erpStatusExcel = new Set(this.erpStatusExcel);
+  }
+
+  confirmarExcel(): void {
+    this.mostrarModalExcel = false;
+    this.downloadExcel();
+  }
+
   downloadExcel(): void {
     this.downloadingExcel = true;
     const filters: CFDIFilter = { ...this.filterForm.value };
     if (this.ejercicioActual) filters.ejercicio = this.ejercicioActual;
     if (this.periodoActual)   filters.periodo   = this.periodoActual;
+
+    // Sobreescribir erpStatus con la selección del modal
+    if (this.erpStatusExcel.size < this.erpStatusOpciones.length) {
+      filters.erpStatus = [...this.erpStatusExcel].join(',');
+    } else {
+      delete filters.erpStatus; // todos = sin filtro
+    }
 
     this.cfdisFacade.exportExcel(filters).pipe(takeUntil(this.destroy$)).subscribe({
       next: (blob) => {

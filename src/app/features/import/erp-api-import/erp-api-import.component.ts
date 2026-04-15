@@ -22,6 +22,19 @@ export class ErpApiImportComponent implements OnInit, OnDestroy {
   mostrarSelectorPeriodo = false;
   private pendingCarga = false;
 
+  // ── Filtro por estatus ERP ────────────────────────────────────────────────
+  readonly estatusOpciones = ['Timbrado', 'Cancelado', 'Habilitado', 'Deshabilitado', 'Cancelacion Pendiente'];
+  estatusSeleccionados: Set<string> = new Set(this.estatusOpciones); // todos por defecto
+
+  // ── Filtro por tipo de comprobante ────────────────────────────────────────
+  readonly tipoOpciones: { valor: string; label: string }[] = [
+    { valor: 'I', label: 'Ingreso' },
+    { valor: 'E', label: 'Egreso' },
+    { valor: 'P', label: 'Pago' },
+    { valor: 'N', label: 'Nómina' },
+  ];
+  tiposSeleccionados: Set<string> = new Set(this.tipoOpciones.map(t => t.valor)); // todos por defecto
+
   // ── Estado de la operación ────────────────────────────────────────────────
   loading = false;
   result: ErpCargaResult | null = null;
@@ -69,6 +82,34 @@ export class ErpApiImportComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ── Filtro estatus ────────────────────────────────────────────────────────
+
+  toggleEstatus(estatus: string): void {
+    if (this.estatusSeleccionados.has(estatus)) {
+      this.estatusSeleccionados.delete(estatus);
+    } else {
+      this.estatusSeleccionados.add(estatus);
+    }
+    this.estatusSeleccionados = new Set(this.estatusSeleccionados); // forzar detección de cambios
+  }
+
+  seleccionarTodos(): void {
+    this.estatusSeleccionados = new Set(this.estatusOpciones);
+  }
+
+  toggleTipo(valor: string): void {
+    if (this.tiposSeleccionados.has(valor)) {
+      this.tiposSeleccionados.delete(valor);
+    } else {
+      this.tiposSeleccionados.add(valor);
+    }
+    this.tiposSeleccionados = new Set(this.tiposSeleccionados);
+  }
+
+  seleccionarTodosTipos(): void {
+    this.tiposSeleccionados = new Set(this.tipoOpciones.map(t => t.valor));
+  }
+
   // ── Carga desde ERP ───────────────────────────────────────────────────────
 
   cargar(): void {
@@ -83,7 +124,15 @@ export class ErpApiImportComponent implements OnInit, OnDestroy {
     this.error   = '';
     this.toastVisible = false;
 
-    this.erpService.cargarDesdeErp(this.ejercicioActual, this.periodoActual)
+    const filtro = this.estatusSeleccionados.size < this.estatusOpciones.length
+      ? [...this.estatusSeleccionados]
+      : undefined;
+
+    const tipoFiltro = this.tiposSeleccionados.size < this.tipoOpciones.length
+      ? [...this.tiposSeleccionados]
+      : undefined;
+
+    this.erpService.cargarDesdeErp(this.ejercicioActual, this.periodoActual, filtro, tipoFiltro)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {

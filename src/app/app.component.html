@@ -35,14 +35,6 @@
         </a>
 
         <div *ngIf="!sidebarCollapsed" class="sidebar-section">Análisis</div>
-        <a routerLink="/comparisons" [routerLinkActiveOptions]="{exact:true}" routerLinkActive="active" [title]="sidebarCollapsed ? 'Comparaciones' : ''">
-          <span class="sidebar-icon">⇄</span>
-          <span *ngIf="!sidebarCollapsed">Comparaciones</span>
-        </a>
-        <a routerLink="/discrepancies" routerLinkActive="active" [title]="sidebarCollapsed ? 'Discrepancias' : ''">
-          <span class="sidebar-icon">△</span>
-          <span *ngIf="!sidebarCollapsed">Discrepancias</span>
-        </a>
         <a routerLink="/ejercicios" routerLinkActive="active" [title]="sidebarCollapsed ? 'Ejercicios y Periodos' : ''">
           <span class="sidebar-icon">◫</span>
           <span *ngIf="!sidebarCollapsed">Ejercicios y Periodos</span>

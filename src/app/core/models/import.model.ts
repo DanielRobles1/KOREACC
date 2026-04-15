@@ -47,10 +47,17 @@ export interface ErpApiImportParams {
 /** Constante: clave localStorage para guardar la URL del ERP (legacy) */
 export const ERP_API_URL_KEY = 'cfdi_erp_api_url';
 
+export type ErpStatusFiltro = 'Timbrado' | 'Cancelado' | 'Habilitado' | 'Deshabilitado' | 'Cancelacion Pendiente';
+export type ErpTipoFiltro = 'I' | 'E' | 'P' | 'N';
+
 /** Parámetros para cargar CFDIs desde el ERP integrado (POST /api/erp/cargar) */
 export interface ErpCargaParams {
   ejercicio: number;
   periodo: number;
+  /** Si viene vacío o undefined, se importan todos los estatus */
+  estatusFiltro?: ErpStatusFiltro[];
+  /** Si viene vacío o undefined, se importan todos los tipos */
+  tipoFiltro?: ErpTipoFiltro[];
 }
 
 /** Resumen de la carga desde ERP */

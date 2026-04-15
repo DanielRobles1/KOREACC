@@ -14,8 +14,10 @@ import { ErpCargaParams, ErpCargaResult } from '../models/import.model';
 export class ErpService {
   constructor(private api: ApiService) {}
 
-  cargarDesdeErp(ejercicio: number, periodo: number): Observable<ErpCargaResult> {
+  cargarDesdeErp(ejercicio: number, periodo: number, estatusFiltro?: string[], tipoFiltro?: string[]): Observable<ErpCargaResult> {
     const params: ErpCargaParams = { ejercicio, periodo };
+    if (estatusFiltro && estatusFiltro.length > 0) params.estatusFiltro = estatusFiltro as any;
+    if (tipoFiltro   && tipoFiltro.length   > 0) params.tipoFiltro    = tipoFiltro    as any;
     return this.api.post<ErpCargaResult>('/erp/cargar', params);
   }
 

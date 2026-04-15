@@ -48,8 +48,8 @@ body {
 
 /* ── Layout ─────────────────────────────────────────────────── */
 .app-layout { display: flex; min-height: 100vh; }
-.main-content { flex: 1; overflow-y: auto; min-width: 0; }
-.page { padding: 2rem; max-width: 1400px; }
+.main-content { flex: 1; overflow: auto; min-width: 0; }
+.page { padding: 1.5rem 1.25rem; max-width: 100%; }
 
 /* ── Sidebar ─────────────────────────────────────────────────── */
 .sidebar {
@@ -277,6 +277,26 @@ body {
 }
 .btn-danger:hover:not(:disabled) { background: #dc2626; }
 
+.btn-success {
+  background: #16a34a;
+  color: #fff;
+  border-color: #16a34a;
+}
+.btn-success:hover:not(:disabled) { background: #15803d; }
+
+.btn-warning {
+  background: #d97706;
+  color: #fff;
+  border-color: #d97706;
+}
+.btn-warning:hover:not(:disabled) { background: #b45309; }
+
+.btn-secondary-active {
+  background: var(--gray-500);
+  color: #fff;
+  border-color: var(--gray-500);
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--gray-600);
@@ -376,7 +396,17 @@ body {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   border: 1px solid var(--gray-200);
-  overflow: hidden;
+  min-width: 0;
+}
+.table-card-body {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius);
+}
+/* Wrapper de scroll para tablas fuera de table-card */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .table-card-header {
   padding: 1rem 1.25rem;
@@ -395,6 +425,60 @@ body {
 .data-table {
   width: 100%;
   border-collapse: collapse;
+}
+
+/* Filtros integrados en el encabezado de tabla */
+.cfdi-table thead th {
+  vertical-align: top;
+  height: 52px;
+}
+.th-label {
+  font-size: .67rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--gray-400);
+  margin-bottom: .2rem;
+  white-space: nowrap;
+}
+.th-filter {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--gray-200);
+  border-radius: 0;
+  font-size: .68rem;
+  color: var(--gray-500);
+  padding: .15rem .1rem;
+  outline: none;
+  transition: border-color .15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.th-filter:focus {
+  border-bottom-color: var(--primary);
+  color: var(--gray-700);
+}
+.th-filter::placeholder { color: var(--gray-300); font-style: italic; }
+
+/* Tabla de CFDIs: layout fijo para controlar anchos */
+.cfdi-table {
+  table-layout: fixed;
+  min-width: 900px;
+}
+.cfdi-table td,
+.cfdi-table th {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cfdi-table td.td-actions {
+  overflow: visible;
+  white-space: normal;
+  display: flex;
+  gap: .3rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 .data-table th {
   text-align: left;
@@ -664,6 +748,23 @@ body {
 .cfdi-row--selected td             { background: var(--primary-light) !important; }
 .cfdi-row--selected td:first-child { border-left: 4px solid var(--primary); }
 
+/* ── Excel export modal ──────────────────────────────────────── */
+.modal-excel {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: var(--white); z-index: 202;
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  border-radius: 10px; padding: 1.5rem; width: 340px;
+  display: flex; flex-direction: column; gap: 1rem;
+}
+.modal-excel h3 { margin: 0; font-size: 1rem; font-weight: 600; color: var(--gray-800); }
+.modal-excel .modal-opciones { display: flex; flex-direction: column; gap: .5rem; }
+.modal-excel .modal-opcion {
+  display: flex; align-items: center; gap: .6rem;
+  cursor: pointer; font-size: .875rem; color: var(--gray-700);
+}
+.modal-excel .modal-opcion input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; }
+.modal-excel .modal-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: .25rem; }
+
 /* ── CFDI detail panel ───────────────────────────────────────── */
 .cfdi-detail-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.25); z-index: 200;
@@ -706,6 +807,16 @@ body {
   font-weight: 600;
   margin-right: 0.25rem;
 }
+
+/* ── Discrepancy cards ───────────────────────────────────────── */
+.disc-card {
+  border-radius: 7px; padding: .6rem .75rem; margin-bottom: .6rem;
+  border: 1px solid #e2e8f0; background: #f8fafc;
+}
+.disc-card--warning  { background: #fefce8; border-color: #fde68a; }
+.disc-card--critical { background: #fff5f5; border-color: #fecaca; }
+.disc-card--high     { background: #fff7ed; border-color: #fed7aa; }
+.disc-card--medium   { background: #f0f9ff; border-color: #bae6fd; }
 
 /* ── CFDI detail stamp (cancelado / deshabilitado) ──────────── */
 .cfdi-detail-stamp {

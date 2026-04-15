@@ -61,9 +61,61 @@
         </div>
       </div>
 
+      <!-- Filtro por tipo de comprobante ─────────────────────────────────── -->
+      <div class="mb-3">
+        <div class="form-label mb-2" style="font-weight:600;">
+          Tipo de comprobante:
+          <button type="button" class="btn btn-secondary btn-xs ml-2"
+            (click)="seleccionarTodosTipos()" [disabled]="tiposSeleccionados.size === tipoOpciones.length">
+            Todos
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <label *ngFor="let t of tipoOpciones"
+            class="flex gap-1 align-items-center text-sm"
+            style="cursor:pointer; user-select:none;">
+            <input type="checkbox"
+              [checked]="tiposSeleccionados.has(t.valor)"
+              (change)="toggleTipo(t.valor)">
+            {{ t.label }} ({{ t.valor }})
+          </label>
+        </div>
+        <div *ngIf="tiposSeleccionados.size === 0" class="text-xs text-danger mt-1">
+          Selecciona al menos un tipo
+        </div>
+      </div>
+
+      <!-- Filtro por estatus ERP ──────────────────────────────────────────── -->
+      <div class="mb-4">
+        <div class="form-label mb-2" style="font-weight:600;">
+          Estatus ERP:
+          <button type="button" class="btn btn-secondary btn-xs ml-2"
+            (click)="seleccionarTodos()" [disabled]="estatusSeleccionados.size === estatusOpciones.length">
+            Todos
+          </button>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <label *ngFor="let est of estatusOpciones"
+            class="flex gap-1 align-items-center text-sm"
+            style="cursor:pointer; user-select:none;">
+            <input type="checkbox"
+              [checked]="estatusSeleccionados.has(est)"
+              (change)="toggleEstatus(est)">
+            {{ est }}
+          </label>
+        </div>
+        <div *ngIf="estatusSeleccionados.size === 0" class="text-xs text-danger mt-1">
+          Selecciona al menos un estatus
+        </div>
+        <div *ngIf="estatusSeleccionados.size < estatusOpciones.length && estatusSeleccionados.size > 0"
+          class="text-xs text-muted mt-1">
+          Se importarán <strong>{{ estatusSeleccionados.size }}</strong> estatus seleccionado(s)
+        </div>
+      </div>
+
       <button
         class="btn btn-primary"
-        [disabled]="loading"
+        [disabled]="loading || estatusSeleccionados.size === 0 || tiposSeleccionados.size === 0"
         (click)="cargar()">
         <span *ngIf="!loading">🔄 Cargar CFDIs del ERP</span>
         <span *ngIf="loading">Cargando...</span>
@@ -122,7 +174,7 @@
     <!-- Detalle de errores ─────────────────────────────────────────────── -->
     <div *ngIf="(result.detalleErrores?.length ?? 0) > 0">
       <div class="form-label text-danger mb-2">Registros con error</div>
-      <div style="max-height:240px; overflow-y:auto;">
+      <div style="max-height:240px; overflow-y:auto; overflow-x:auto;">
         <table class="data-table">
           <thead>
             <tr><th>UUID</th><th>Error</th></tr>

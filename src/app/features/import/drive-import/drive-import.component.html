@@ -171,6 +171,7 @@
 
     <div *ngIf="result.errores.length > 0" class="mt-4">
       <div class="form-label text-danger">Archivos con error</div>
+      <div class="table-scroll">
       <table class="data-table">
         <thead><tr><th>Archivo</th><th>Error</th></tr></thead>
         <tbody>
@@ -180,6 +181,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 </div>

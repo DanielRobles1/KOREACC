@@ -7,6 +7,8 @@ import {
   Discrepancy,
   DashboardKPIs,
   PaginatedResponse,
+  DiscrepanciaMontosResponse,
+  CfdiStatusMismatchResponse,
 } from '../models/cfdi.model';
 
 /**
@@ -92,5 +94,21 @@ export class ComparisonFacade {
 
   exportExcel(filters: Record<string, unknown> = {}): Observable<Blob> {
     return this.comparisonService.exportExcel(filters);
+  }
+
+  getDiscrepanciasMontos(ejercicio?: number, periodo?: number, tipoDeComprobante?: string, campos?: string): Observable<DiscrepanciaMontosResponse> {
+    const filters: Record<string, unknown> = {};
+    if (ejercicio)         filters['ejercicio']         = ejercicio;
+    if (periodo)           filters['periodo']           = periodo;
+    if (tipoDeComprobante) filters['tipoDeComprobante'] = tipoDeComprobante;
+    return this.comparisonService.getDiscrepanciasMontos(filters, campos);
+  }
+
+  getSatVigenteErpInactivo(ejercicio?: number, periodo?: number, tipoDeComprobante?: string): Observable<CfdiStatusMismatchResponse> {
+    const filters: Record<string, unknown> = {};
+    if (ejercicio)         filters['ejercicio']         = ejercicio;
+    if (periodo)           filters['periodo']           = periodo;
+    if (tipoDeComprobante) filters['tipoDeComprobante'] = tipoDeComprobante;
+    return this.comparisonService.getSatVigenteErpInactivo(filters);
   }
 }

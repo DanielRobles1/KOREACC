@@ -49,6 +49,14 @@ export const SAT_STATUS_CLASS: Record<string, string> = {
   'Deshabilitado':      'badge-disabled',
 };
 
+export const ERP_STATUS_CLASS: Record<string, string> = {
+  'Timbrado':            'badge-success',
+  'Habilitado':          'badge-success',
+  'Cancelado':           'badge-danger',
+  'Deshabilitado':       'badge-disabled',
+  'Cancelacion Pendiente': 'badge-warning',
+};
+
 export const DISCREPANCY_TYPE_LABEL: Record<string, string> = {
   AMOUNT_MISMATCH:       'Diferencia de monto',
   RFC_MISMATCH:          'RFC no coincide',

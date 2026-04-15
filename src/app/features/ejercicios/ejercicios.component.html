@@ -246,7 +246,7 @@
           <!-- Comparar ahora -->
           <div class="periodo-batch-row">
             <select class="form-control form-control-sm" style="width:auto;"
-                    [value]="batchTipo[p._id] ?? ''"
+                    [value]="batchTipo[p._id] || ''"
                     (change)="batchTipo[p._id] = $any($event.target).value"
                     [disabled]="batchLoading[p._id]">
               <option *ngFor="let t of tiposComprobante" [value]="t.valor">{{ t.label }}</option>

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { Comparison, ComparisonSession, Discrepancy, PaginatedResponse, DashboardKPIs } from '../models/cfdi.model';
+import { Comparison, ComparisonSession, Discrepancy, PaginatedResponse, DashboardKPIs, DiscrepanciaMontosResponse, CfdiStatusMismatchResponse } from '../models/cfdi.model';
 
 @Injectable({ providedIn: 'root' })
 export class ComparisonService {
@@ -81,5 +81,14 @@ export class ComparisonService {
 
   exportExcel(filters: Record<string, unknown> = {}): Observable<Blob> {
     return this.api.downloadBlob('/reports/export/excel', filters);
+  }
+
+  getSatVigenteErpInactivo(filters: Record<string, unknown> = {}): Observable<CfdiStatusMismatchResponse> {
+    return this.api.get<CfdiStatusMismatchResponse>('/reports/sat-vigente-erp-inactivo', filters);
+  }
+
+  getDiscrepanciasMontos(filters: Record<string, unknown> = {}, campos?: string, limit = 500): Observable<DiscrepanciaMontosResponse> {
+    const params = { ...filters, limit, ...(campos ? { campos } : {}) };
+    return this.api.get<DiscrepanciaMontosResponse>('/reports/discrepancias-montos', params);
   }
 }

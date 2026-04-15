@@ -19,16 +19,6 @@ const routes: Routes = [
     loadChildren: () => import('./features/cfdis/cfdis.module').then(m => m.CfdisModule),
   },
   {
-    path: 'comparisons',
-    canActivate: [AuthGuard],
-    loadChildren: () => import('./features/comparisons/comparisons.module').then(m => m.ComparisonsModule),
-  },
-  {
-    path: 'discrepancies',
-    canActivate: [AuthGuard],
-    loadChildren: () => import('./features/discrepancies/discrepancies.module').then(m => m.DiscrepanciesModule),
-  },
-  {
     path: 'sat',
     canActivate: [AuthGuard],
     loadChildren: () => import('./features/sat/sat.module').then(m => m.SatModule),

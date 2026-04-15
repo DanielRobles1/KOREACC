@@ -8,6 +8,7 @@ export interface CFDIFilter {
   rfcEmisor?: string;
   rfcReceptor?: string;
   satStatus?: string;
+  erpStatus?: string;
   fechaInicio?: string;
   fechaFin?: string;
   search?: string;
@@ -17,7 +18,9 @@ export interface CFDIFilter {
 }
 export type TipoComprobante = 'I' | 'E' | 'T' | 'N' | 'P';
 export type SatStatus = 'Vigente' | 'Cancelado' | 'Deshabilitado' | 'No Encontrado' | 'Pendiente' | 'Error' | 'Expresión Inválida' | 'Desconocido' | null;
+export type ErpStatus = 'Timbrado' | 'Cancelado' | 'Habilitado' | 'Deshabilitado' | 'Cancelacion Pendiente' | null;
 export type ComparisonStatus = 'match' | 'discrepancy' | 'warning' | 'not_in_sat' | 'not_in_erp' | 'cancelled' | 'pending' | 'error';
+
 export type DiscrepancyType =
   | 'UUID_NOT_FOUND_SAT' | 'AMOUNT_MISMATCH' | 'RFC_MISMATCH' | 'DATE_MISMATCH'
   | 'CANCELLED_IN_SAT' | 'DUPLICATE_UUID' | 'MISSING_IN_ERP' | 'TAX_CALCULATION_ERROR'
@@ -55,6 +58,11 @@ export interface PagoDetalle {
   doctosRelacionados?: DoctoRelacionado[];
 }
 
+export interface CfdiRelacionado {
+  tipoRelacion: string;
+  uuids: string[];
+}
+
 export interface ComplementoPago {
   version: string;
   pagos: PagoDetalle[];
@@ -84,6 +92,7 @@ export interface CFDI {
   receptor: Contribuyente;
   satStatus: SatStatus;
   satLastCheck?: Date;
+  erpStatus?: ErpStatus;
   lastComparisonStatus?: ComparisonStatus | null;
   lastComparisonAt?: Date;
   erpId?: string;
@@ -91,6 +100,7 @@ export interface CFDI {
   updatedAt: Date;
   /** Solo presente en TipoComprobante === 'P' */
   complementoPago?: ComplementoPago;
+  cfdiRelacionados?: CfdiRelacionado[];
 }
 
 export interface FieldDiff {
@@ -166,19 +176,79 @@ export interface PaginatedResponse<T> {
   pagination: { total: number; page: number; limit: number; pages: number };
 }
 
-export interface IvaStats {
+export interface IvaStatsFuente {
   ivaTrasladadoTotal: number;
   ivaRetenidoTotal:   number;
   ivaNeto:            number;
 }
 
+export interface IvaStatsFuenteConConteo extends IvaStatsFuente {
+  count: number;
+}
+
+export interface IvaStatsTipo {
+  erp?: IvaStatsFuenteConConteo;
+  sat?: IvaStatsFuenteConConteo;
+}
+
+export interface IvaStats extends IvaStatsFuente {
+  erp: IvaStatsFuente;
+  sat: IvaStatsFuente;
+  byTipo?: Record<string, IvaStatsTipo>;
+}
+
+export interface DiscrepanciaMonto {
+  _id: string;
+  uuid: string;
+  status: ComparisonStatus;
+  criticalCount: number;
+  warningCount: number;
+  tipoDeComprobante?: TipoComprobante;
+  ejercicio?: number;
+  periodo?: number;
+  comparedAt: Date;
+  differences: FieldDiff[];
+  erpCfdiId?: Partial<CFDI>;
+  satCfdiId?: Partial<CFDI>;
+}
+
+export interface DiscrepanciaMontosResponse {
+  items: DiscrepanciaMonto[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+export interface CfdiStatusMismatch {
+  _id: string;
+  uuid: string;
+  serie?: string;
+  folio?: string;
+  fecha: Date;
+  total: number;
+  tipoDeComprobante: TipoComprobante;
+  emisor: Contribuyente;
+  receptor: Contribuyente;
+  satStatus: SatStatus;
+  erpStatus: ErpStatus;
+}
+
+export interface CfdiStatusMismatchResponse {
+  items: CfdiStatusMismatch[];
+  total: number;
+}
+
 export interface DashboardKPIs {
   totalCFDIs: number;
   conciliados: number;
+  vigenteErpSat: { count: number; total: number };
   conDiscrepancia: number;
   sinConciliar: number;
   notInErp: number;
   erpCanceladosCount: number;
+  erpCancelados?: { total: number; count: number };
+  satCancelados?: { total: number; count: number };
   totalERP: number;
   totalSAT: number;
   diferencia: number;
